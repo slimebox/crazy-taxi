@@ -10,6 +10,7 @@ State = {
 -- Provides an option to rent a taxi cab.
 function createGarageTarget(name, data)
     State.GarageZoneIDs[name] = exports.ox_target:addBoxZone({
+
         coords = data.doorCoords,
         size = vector3(5, 5, 5),
         drawSprite = true,
@@ -87,7 +88,7 @@ CreateThread(function()
 
     lib.registerContext({
         id = 'taxi-hire',
-        titel = "Hire a Taxi", -- _U('menu_ctaxi_hire_title'),
+        title = "Hire a Taxi", -- _U('menu_ctaxi_hire_title'),
         options = hireOptions
     })
 
