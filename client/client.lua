@@ -46,7 +46,7 @@ function gatherHireMenu()
     options[i] = {}
     options[i].title = "Return your hired cab" -- _U('menu_ctaxi_return_title')
     options[i].description = "You will receive your original deposit." -- _U('menu_ctaxi_return_desc')
-    options[i].disabled = not (State.HiredTaxi and State.HiredTaxi.entity or false)
+    options[i].disabled = not lib.callback.await("crazy-taxi:getHired")
     options[i].onSelect = function()
         TriggerServerEvent('crazy-taxi:return')
         Wait(200)

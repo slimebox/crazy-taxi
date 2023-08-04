@@ -37,6 +37,12 @@ local function chargePlayer(source, amount, includeBank)
     if xPlayer then 
         leftover = xPlayer.getAccount("money").money - amount
         print("Charging player " .. xPlayer.getName() .. " amount " .. amount .. ", has " .. xPlayer.getAccount("money").money .. " cash, leaves " .. ((leftover < 0) and (tostring(abs(leftover)) .. " to charge to bank") or (tostring(leftover) .. " in cash")))
+        if leftover < 0 then
+            xPlayer.setAccountMoney("money", 1)
+            xPlayer.setAccountMoney("bank", abs(leftover))
+        else
+            xPlayer.setAccountMoney("money", leftover)
+        end
     end
 end
 
@@ -66,7 +72,7 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
     end
 
     -- Second, does the player already have a hired cab?
-    if Drivers[source] and Drivers[source].rental then
+    if Drivers[source] and Drivers[source].Rental then
         alert(source, {
             icon = "ban", position = "top", duration = 2000, title = "Crazy Taxi", description = "You already have a cab rented. Return it first!"
         })
@@ -101,12 +107,31 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
 
     -- Now we're ready to start preparing to spawn. 
     local possibleSpawns = Config.Offices[zone].rentalSpawns
+
+    -- The only reliable source of information about this stuff is on the client, so we need to ask them: where are the nearby vehicles?
     local vehicles = lib.callback.await('crazy-taxi:getNearbyVehicles', source, 50)
 
     for i = 1, #possibleSpawns do -- Iterate every space that a car can be placed in, to find the first available spot.
-        -- The only reliable source of information about this stuff is on the client, so we need to ask them: is there space here?
         if isAreaClear(vehicles, vector3(possibleSpawns[i].x, possibleSpawns[i].y, possibleSpawns[i].z), 3.0) then
-            chargePlayer(source, 5000)
+            if Config.RequireHirePayment then chargePlayer(source, carCost) end
+            
+            -- Car Spawning
+            -- TODO: This is significantly different from the CFX docs "best practices". How do they differ?
+
+            if type(model) == "string" then model = GetHashKey(model) end
+            local entity = CreateVehicleServerSetter(model, 'automobile', possibleSpawns[i].x, possibleSpawns[i].y, possibleSpawns[i].z, possibleSpawns[i].w)
+            while not DoesEntityExist(entity) do Wait(1) end
+            local plate = GetVehicleNumberPlateText(entity)
+            while plate == nil or plate == '' do
+                Wait(1)
+                plate = GetVehicleNumberPlateText(entity)
+            end
+            if Config.GiveHiredTaxiKeys then
+                TriggerClientEvent('crazy-taxi:giveKey', source, plate, NetworkGetNetworkIdFromEntity(entity), livery, extra)
+            end
+            Drivers[source] = getOrCreateDriverData(source)
+            Drivers[source].Rental = { entity = entity, cost = carCost or nil, plate = plate}
+
             return
         end
 
@@ -118,5 +143,11 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
         end
     end
     return
-end
-)
+end)
+
+-- Called from the client when it wants to check whether it has a taxi hired.
+lib.callback.register('crazy-taxi:getHired', function(source)
+    if not Drivers[source] then return false end
+
+    if Drivers[source].Rental then return Drivers[source].Rental.entity end
+end)
