@@ -32,6 +32,14 @@ function createGarageTarget(name, data)
     })
 end
 
+-- Check whether the player has hired a taxi.
+-- Asks the server, rather than checking locally.
+function hasHiredTaxi() 
+    local value = lib.callback.await("crazy-taxi:getHired")
+    print(value)
+    return value
+end
+
 -- Remove the garage trigger
 function removeGarageTarget(name)
     exports.ox_target:removeZone(State.GarageZoneIDs[name])
@@ -46,7 +54,7 @@ function gatherHireMenu()
     options[i] = {}
     options[i].title = "Return your hired cab" -- _U('menu_ctaxi_return_title')
     options[i].description = "You will receive your original deposit." -- _U('menu_ctaxi_return_desc')
-    options[i].disabled = not lib.callback.await("crazy-taxi:getHired")
+    options[i].disabled = not hasHiredTaxi()
     options[i].onSelect = function()
         TriggerServerEvent('crazy-taxi:return')
         Wait(200)
@@ -77,7 +85,7 @@ end
 -- Request the server spawn our taxi for us.
 -- The server will do the necessary checks, to prevent sneaky cheats.
 function hireTaxi(model, livery, extras)
-    lib.callback.await('crazy-taxi:hire', 600000, model, livery, extras, State.PlayerZone) -- 10 minute cooldown - 60 x 1000 x 10
+    lib.callback.await('crazy-taxi:hire', -1, model, livery, extras, State.PlayerZone) -- Cooldown enforced on the server, by checking that the player already has a rental.
 end
 
 -- Send the server a list of vehicles nearby us.

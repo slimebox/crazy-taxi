@@ -64,7 +64,9 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
     -- First, we should run some checks. Is the player actually a taxi driver?
     local source = source
     local xPlayer = ESX.GetPlayerFromId(source)
+    local ID = xPlayer.identifier
     if not xPlayer.job.name == 'crazy-taxi' then
+        print("Aborting - no job")
         alert(source, {
             icon = "ban", position = "top", duration = 2000, title = "Crazy Taxi", description = "You are not on duty, so you cannot hire a taxi."
         })
@@ -72,7 +74,8 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
     end
 
     -- Second, does the player already have a hired cab?
-    if Drivers[source] and Drivers[source].Rental then
+    if Drivers[ID] and Drivers[ID].Rental then
+        print("Aborting - already rented")
         alert(source, {
             icon = "ban", position = "top", duration = 2000, title = "Crazy Taxi", description = "You already have a cab rented. Return it first!"
         })
@@ -83,12 +86,13 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
     local eligible = false
     local carCost = 0 -- Saved for later!
     for k,v in pairs(Config.Cabs) do -- Search through the active cabs to find the one called for
-        if v.hash == model and (Drivers[source] and Drivers[source].level or 1) >= v.reqLevel then -- Check whether the driver meets the required level
+        if v.hash == model and (Drivers[ID] and Drivers[ID].level or 1) >= v.reqLevel then -- Check whether the driver meets the required level
             eligible = true -- Set the flag if so
             carCost = v.deposit
         end
     end
     if not eligible then -- Once we've searched the whole list, we can check whether we turned up valid.
+        print("Aborting - not unlocked")
         alert(source, {
             icon = "ban", position = "top", duration = 2000, title = "Crazy Taxi", description = "You have not unlocked this vehicle yet. How are you even trying to spawn this?"
         })
@@ -98,6 +102,7 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
     -- Fourth, do we have to charge for the taxi? If so, does the player have enough money?
     if Config.RequireHirePayment then
         if not playerHasEnough(source, carCost) then -- Will check both cash and bank.
+            print("Aborting - no money")
             alert(source, {
                 icon = "ban", position = "top", duration = 2000, title = "Crazy Taxi", description = "You do not have enough money to hire this taxi."
             })
@@ -129,14 +134,14 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
             if Config.GiveHiredTaxiKeys then
                 TriggerClientEvent('crazy-taxi:giveKey', source, plate, NetworkGetNetworkIdFromEntity(entity), livery, extra)
             end
-            Drivers[source] = getOrCreateDriverData(source)
-            Drivers[source].Rental = { entity = entity, cost = carCost or nil, plate = plate}
-
+            Drivers[ID] = getOrCreateDriverData(source)
+            Drivers[ID].Rental = { entity = entity, cost = carCost or nil, plate = plate}
             return
         end
 
         -- Make sure we handle the case where there are no spots left
         if i == #possibleSpawns then 
+            print("Aborting - no room")
             alert(source, {
                 icon = "ban", position = "top", duration = 2000, title = "Crazy Taxi", description = "There are no available slots to spawn a taxi, please wait for one to move."
             })
@@ -147,7 +152,7 @@ end)
 
 -- Called from the client when it wants to check whether it has a taxi hired.
 lib.callback.register('crazy-taxi:getHired', function(source)
-    if not Drivers[source] then return false end
+    if not Drivers[ID] then return false end
 
-    if Drivers[source].Rental then return Drivers[source].Rental.entity end
+    if Drivers[ID].Rental then return Drivers[source].Rental.entity end
 end)
