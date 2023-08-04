@@ -59,6 +59,11 @@ local function isAreaClear(entities, coords, range)
     return true
 end
 
+-- -- -- -- -- -- -- -- -- -- -- -- -- 
+-- Callbacks -- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- -- --
+
+
 -- Called from the client, when a taxi is selected for hire.
 lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras, zone)
     -- First, we should run some checks. Is the player actually a taxi driver?
@@ -150,9 +155,45 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
     return
 end)
 
--- Called from the client when it wants to check whether it has a taxi hired.
-lib.callback.register('crazy-taxi:getHired', function(source)
-    if not Drivers[ID] then return false end
+-- Called from the client when it wants to return a taxi.
+lib.callback.register('crazy-taxi:return', function(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    local ident = xPlayer.identifier
 
-    if Drivers[ID].Rental then return Drivers[source].Rental.entity end
+    -- Double check that this player has actually rented a taxi..
+    if not Drivers[ident] then return end
+
+    local rental = Drivers[ident].Rental
+    if not rental then return end
+
+    -- Double check their taxi wasn't destroyed..
+    local taxiEntity = rental.entity
+    if DoesEntityExist(taxiEntity) then
+        DeleteEntity(taxiEntity)
+    end
+
+    -- If they paid for it, they get full cost back.
+    -- TODO: Configurable! Disable this, also allow payment based on car damage?
+    -- TODO: Should we allow the player to have the car repaired while in the cab yard?
+    if rental.cost then
+        xPlayer.addAccountMoney("money", rental.cost)
+    end
+
+    -- Nil out the rental for this driver
+    Drivers[ident].Rental = nil
+end)
+
+-- Called from the client when it wants to get its' own data.
+lib.callback.register('crazy-taxi:getDriverData', function(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    local ident = xPlayer.identifier
+    
+    -- If we don't have it, then make something! Save them as a new taxi driver.
+    if not Drivers[ident] then
+        if xPlayer.job.name == 'crazy-taxi' then -- Check they're actually a taxi driver first.
+            Drivers[ident] = getOrCreateDriverData(source)
+        end
+    end
+
+    return Drivers[ident]
 end)
