@@ -2,7 +2,8 @@
 ESX = exports['es_extended']:getSharedObject()
 
 State = {
-    GarageZoneIDs = {},      -- Cached IDs of garage triggers. Indexed by the name of the Offices table in config.lua. ID represents the Box Zone created at the doorCoords.
+    PlayerZone = nil,       -- The name of the zone that the player is in, as determined by the key to the nearest Office target.
+    GarageZoneIDs = {},     -- Cached IDs of garage triggers. Indexed by the name of the Offices table in config.lua. ID represents the Box Zone created at the doorCoords.
     HiredTaxi = nil         -- The car that the user has hired. Only one at a time.
 }
 
@@ -10,7 +11,6 @@ State = {
 -- Provides an option to rent a taxi cab.
 function createGarageTarget(name, data)
     State.GarageZoneIDs[name] = exports.ox_target:addBoxZone({
-
         coords = data.doorCoords,
         size = vector3(5, 5, 5),
         drawSprite = true,
@@ -19,7 +19,7 @@ function createGarageTarget(name, data)
                 label = 'Rent Taxi Cab',
                 icon = "fa-solid fa-car",
                 canInteract = function()
-                    if ESX.PlayerData.job.name == "crazy-taxi" then -- and state.onJob 
+                    if ESX.GetPlayerData().job.name == "crazy-taxi" then -- and state.onJob 
                         return true -- Players can only interact with this, if they have the Taxi job and are on duty.
                     end
                 end,
@@ -77,8 +77,15 @@ end
 -- Request the server spawn our taxi for us.
 -- The server will do the necessary checks, to prevent sneaky cheats.
 function hireTaxi(model, livery, extras)
-    print("Hiring a " .. tostring(model))
+    lib.callback.await('crazy-taxi:hire', 600000, model, livery, extras, State.PlayerZone) -- 10 minute cooldown - 60 x 1000 x 10
 end
+
+-- Send the server a list of vehicles nearby us.
+-- Used for checking whether there's a car in a spot the server wants to use.
+lib.callback.register('crazy-taxi:getNearbyVehicles', function(radius)
+    local nearbyVehicles = lib.getNearbyVehicles(GetEntityCoords(cache.ped), radius, true)
+    return nearbyVehicles
+end)
 
 -- Run all client setup tasks
 CreateThread(function() 
@@ -109,11 +116,13 @@ CreateThread(function()
         local point = lib.points.new(v.coords, 40, { zone = k })
 
         function point:onEnter()
+            State.PlayerZone = k -- The key of the current Office (area zone) is saved to the local State to be sent later
             createGarageTarget(k, v)
         end
 
         function point:onExit()
             removeGarageTarget(k)
+            State.PlayerZone = nil
         end
     end
 end)

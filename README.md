@@ -71,6 +71,12 @@ Selection of fares can happen three ways.
 
 In any case, when the fare reaches the destination, they will automatically be billed the total amount. Some may choose to add tips - such as those with a different fare type - and some may choose to wait to pay the fee, though invoices tend to have a penalty for late payment.
 
+## Levelling Up
+
+The taxi job has levels - which allow you to gate a player's access to vehicles behind the total amount of fares they have completed - no matter whether they're fast, slow, long distance, short distance, slow and steady, or crazy taxi mode.
+
+The levelling equation is configurable via config.lua, and accepts any numerical equation 
+
 ## Time Limits
 
 Optionally, you may enable time limits for fares. This enforces approximately twice the estimated time for a trip, accounting for speed limits and traffic lights, to ensure that a short trip (Pillbox Hill to Vespucci Boulevard) doesn't end up going way off course (to Paleto Bay) to artifically increase the fare counter.
