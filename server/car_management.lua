@@ -62,6 +62,7 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
             
             -- Car Spawning
             -- TODO: This is significantly different from the CFX docs "best practices". How do they differ?
+            -- ESX.OneSync.SpawnVehicle!
 
             if type(model) == "string" then model = GetHashKey(model) end
             local entity = CreateVehicleServerSetter(model, 'automobile', possibleSpawns[i].x, possibleSpawns[i].y, possibleSpawns[i].z, possibleSpawns[i].w)
@@ -72,7 +73,7 @@ lib.callback.register('crazy-taxi:hire', function(source, model, livery, extras,
                 plate = GetVehicleNumberPlateText(entity)
             end
             if Config.GiveHiredTaxiKeys then
-                TriggerClientEvent('crazy-taxi:giveKey', source, plate, NetworkGetNetworkIdFromEntity(entity), livery, extra)
+                lib.callback.await('crazy-taxi:giveKey', source, plate, NetworkGetNetworkIdFromEntity(entity), livery, extra)
             end
             Drivers[ID] = getOrCreateDriverData(source)
             Drivers[ID].Rental = { entity = entity, cost = carCost or nil, plate = plate}

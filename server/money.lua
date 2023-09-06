@@ -1,8 +1,7 @@
 
-
 -- Check whether the given player has enough money to pay for something.
 -- If their total bank+cash is < amount, they are rejected.
-local function playerHasEnough(source, amount)
+function playerHasEnough(source, amount)
     local total = 0
     local xPlayer = ESX.GetPlayerFromId(source)
     if xPlayer then 
@@ -21,7 +20,7 @@ end
 -- Charges the player for the given amount of money.
 -- It is expected that you already called playerHasEnough before this - because no checks are performed.
 -- If their cash < amount but bank+cash is >= amount, their cash is taken first, and their bank account pays the rest.
-local function chargePlayer(source, amount, includeBank)
+function chargePlayer(source, amount, includeBank)
     local leftover = 0
     local xPlayer = ESX.GetPlayerFromId(source)
     if xPlayer then 
@@ -40,7 +39,7 @@ end
 -- entities: A list of entities to check. Usually the result of GetGamePool('CVehicle').
 -- coords: The point at the center of the range to check
 -- range: The radius (in RAGE units) around the coords to check for the presence of an entity
-local function isAreaClear(entities, coords, range)
+function isAreaClear(entities, coords, range)
     for idx, entity in pairs(entities) do
         if #(coords - entity.coords) <= range then
             return false

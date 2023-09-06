@@ -17,6 +17,9 @@ function gatherHireMenu()
         lib.showContext('taxi-hire')
     end
 
+    local driverData = getDriverData()
+    print("d data ", driverData)
+
     local playerLevel = getDriverData().level
 
     -- Iterate the Cabs config, add each as an item. 
@@ -73,3 +76,74 @@ function updateHireMenu(mode)
         options = State.HireOptions
     })
 end
+
+-- The in-taxi UI is based on GTA 5 Scaleform, so as to not express issues with cursor locking.
+function initializeTaxiScaleform() 
+    if not State.HiredTaxi then return end
+
+    -- Load the scaleform itself
+    State.Scaleform = RequestScaleformMovie("TAXI_DISPLAY") -- Base game! Handy.
+    while not HasScaleformMovieLoaded(State.Scaleform) do
+        Wait(5)
+    end
+
+    -- Load the model to place into the taxi, so it's visible in first person.
+    local hash = joaat("prop_taxi_meter_2")
+    RequestModel(hash)
+    while not HasModelLoaded(hash) do
+        Wait(5)
+    end
+
+    State.TaxiCounterObject = CreateObjectNoOffset(hash, GetEntityCoords(State.HiredTaxi.entity), true, true, false)
+    AttachEntityToEntity(State.TaxiCounterObject, State.HiredTaxi.entity, GetEntityBoneIndexByName(State.HiredTaxi.entity, "Chassis"), vector3(-0.05, 0.78, 0.39), vector3(-6.0, 0.0, -10.0), false, false, false, false, 2, true, 0)
+    -- TODO: Render the price on the entity!
+
+    -- Set the data in the UI
+    BeginScaleformMovieMethod(State.Scaleform, "SET_TAXI_PRICE")
+    ScaleformMovieMethodAddParamInt(0)
+    EndScaleformMovieMethod()
+end
+
+-- Delete the UI for the taxi overlay.
+function removeTaxiScaleform()
+    DeleteObject(State.TaxiCounterObject)
+    SetModelAsNoLongerNeeded(joaat("prop_taxi_meter_2"))
+    SetScaleformMovieAsNoLongerNeeded(State.Scaleform)
+end
+
+-- Change the destination in the taxi overlay.
+function setDestination(dest)
+    BeginScaleformMovieMethod(State.Scaleform, "ADD_TAXI_DESTINATION")
+    
+    -- Add Sprite
+    ScaleformMovieMethodAddParamInt(0)
+    ScaleformMovieMethodAddParamInt(dest.sprite)
+    ScaleformMovieMethodAddParamInt(dest.color.r)
+    ScaleformMovieMethodAddParamInt(dest.color.g)
+    ScaleformMovieMethodAddParamInt(dest.color.b)
+
+    -- Add taxi name
+    BeginTextCommandScaleformString("STRING")
+    AddTextComponentSubstringPlayerName(dest.playerName)
+    EndTextCommandScaleformString()
+
+    -- Add destination zone
+    BeginTextCommandScaleformString("STRING")
+    AddTextComponentSubstringPlayerName(dest.zone)
+    EndTextCommandScaleformString()
+
+    -- Add destination name
+    BeginTextCommandScaleformString("STRING")
+    AddTextComponentSubstringPlayerName(dest.street)
+    EndTextCommandScaleformString()
+
+    EndScaleformMovieMethod()
+
+    BeginScaleformMovieMethod(State.Scaleform, "SHOW_TAXI_DESTINATION")
+    EndScaleformMovieMethod()
+
+    BeginScaleformMovieMethod(State.Scaleform, "HIGHLIGHT_DESTINATION")
+    ScaleformMovieMethodAddParamInt(0)
+    EndScaleformMovieMethod()
+end
+

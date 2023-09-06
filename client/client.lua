@@ -2,12 +2,13 @@
 ESX = exports['es_extended']:getSharedObject()
 
 State = {
-    PlayerZone = nil,       -- The name of the zone that the player is in, as determined by the key to the nearest Office target.
-    GarageZoneIDs = {},     -- Cached IDs of garage triggers. Indexed by the name of the Offices table in config.lua. ID represents the Box Zone created at the doorCoords.
-    HiredTaxi = nil,        -- The car that the user has hired. Only one at a time.
-    HireOptions = {}        -- The state of the context menu used at each cab co office.
+    PlayerZone = nil,        -- The name of the zone that the player is in, as determined by the key to the nearest Office target.
+    GarageZoneIDs = {},      -- Cached IDs of garage triggers. Indexed by the name of the Offices table in config.lua. ID represents the Box Zone created at the doorCoords.
+    HiredTaxi = nil,         -- The car that the user has hired. Only one at a time.
+    HireOptions = {},        -- The state of the context menu used at each cab co office.
+    Scaleform = nil,         -- The scaleform constant used by the in-taxi UI.
+    TaxiCounterObject = nil, -- The object used as the fare counter inside the interior of the taxi.
 }
-
 
 -- Run all client setup tasks
 CreateThread(function() 
@@ -43,7 +44,7 @@ CreateThread(function()
         end
 
         function point:onExit()
-            removeGarageTarget(k)
+            removeGarageTarget(k) -- This is why we needed to save it above. The closure doesn't live this long, so we can't reliably save the key object.
             State.PlayerZone = nil
         end
     end
